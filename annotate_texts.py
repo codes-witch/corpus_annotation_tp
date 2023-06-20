@@ -57,22 +57,40 @@ def annotate_text(url, input_path, output_path_text, output_path_csv, max_size):
 
 
 def send_requests(text_chunks, url, output_path_text, output_path_csv):
-    # print("NUMBER OF CHUNKS IN " + input_path + ": ",  len(text_chunks))
     for text in text_chunks:
+        print("Text length:", len(text), "NUM WORDS", len(text.split()))
         text = text.replace(" ", "%20").replace("\n", "%0A")
         url = url + text
         try:
-            request = requests.post(url, timeout=120)  # Timeout set to 180 seconds (3 minutes)
+            request = requests.post(url, timeout=30)  # Set a max time in seconds
             if request.status_code != 200:
                 print("\nError with status code {}".format(request.status_code) + ": " + input_path + "\n")
             else:
                 data = request.json()
-                print("NUMBER OF ANNOTATIONS in " + input_path, len(data["annotationList"]))
+                # print("NUMBER OF ANNOTATIONS in " + input_path, len(data["annotationList"]))
                 write_csv_and_txt(data, output_path_text, output_path_csv)
+
+        # If exceptions are raised, move the input file to a different directory
         except requests.exceptions.Timeout:
             print("\nRequest timed out:", input_path + "\n")
+            # get filename and level
+            filename = os.path.basename(input_path)
+            level = os.path.basename(os.path.dirname(input_path))
+            timeout_level_path = os.path.join("data/timeout", level)
+
+            # make directory if not exists
+            os.makedirs(timeout_level_path, exist_ok=True)
+
+            # move the file
+            os.rename(input_path, os.path.join(timeout_level_path, filename))
         except requests.exceptions.RequestException as e:
             print("\nError occurred:", e + "\n")
+            filename = os.path.basename(input_path)
+            level = os.path.basename(os.path.dirname(input_path))
+            err_level_path = os.path.join("data/error", level)
+
+            os.makedirs(err_level_path, exist_ok=True)
+            os.rename(input_path, os.path.join(err_level_path, filename))
 
 
 def write_csv_and_txt(data, output_path_text, output_path_csv):
@@ -104,7 +122,7 @@ def write_csv_and_txt(data, output_path_text, output_path_csv):
 
 if __name__ == "__main__":
     url = "http://kibi.group:4000/extractor?text="
-    input_dir = "data/input/"
+    input_dir = "data/timeout/"
     output_dir = "data/output/"
 
     # for out_dir in ["data/output/egp/xmi/" + level for level in levels]:
