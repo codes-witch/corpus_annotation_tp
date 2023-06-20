@@ -1,6 +1,8 @@
 import csv
 import json
 import os
+from datetime import datetime
+
 import requests
 import subprocess
 import time
@@ -114,6 +116,7 @@ if __name__ == "__main__":
         output_path_text = os.path.join(output_dir, level, "text", os.path.split(input_path)[1][:-4])
         output_path_csv = os.path.join(output_dir, level, "csv", os.path.split(input_path)[1][:-4])
         print("Output", output_path_text)
+        print("Started annotating at ", datetime.now().time())
         annotate_text(url, input_path, output_path_text, output_path_csv, 500)
 
     print("\nTime elapsed: ", time.process_time() - start_time, "seconds\n")
