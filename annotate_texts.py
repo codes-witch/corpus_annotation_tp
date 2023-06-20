@@ -57,20 +57,22 @@ def annotate_text(url, input_path, output_path_text, output_path_csv, max_size):
 
 
 def send_requests(text_chunks, url, output_path_text, output_path_csv):
-    # print("NUMBER OR CHUNKS IN " + input_path + ": ",  len(text_chunks))
+    # print("NUMBER OF CHUNKS IN " + input_path + ": ",  len(text_chunks))
     for text in text_chunks:
-        # print("WORKING WITH CHUNK: " + text + " FROM " + input_path)
         text = text.replace(" ", "%20").replace("\n", "%0A")
         url = url + text
-        request = requests.post(url)
-
-        if request.status_code != 200:
-            print("\nError with status code {}".format(request.status_code) + ": " + input_path + "\n")
-        else:
-            # print("Success:", input_path)
-            data = request.json()
-            print("NUMBER OF ANNOTATIONS in " + input_path, len(data["annotationList"]))
-            write_csv_and_txt(data, output_path_text, output_path_csv)
+        try:
+            request = requests.post(url, timeout=120)  # Timeout set to 180 seconds (3 minutes)
+            if request.status_code != 200:
+                print("\nError with status code {}".format(request.status_code) + ": " + input_path + "\n")
+            else:
+                data = request.json()
+                print("NUMBER OF ANNOTATIONS in " + input_path, len(data["annotationList"]))
+                write_csv_and_txt(data, output_path_text, output_path_csv)
+        except requests.exceptions.Timeout:
+            print("\nRequest timed out:", input_path + "\n")
+        except requests.exceptions.RequestException as e:
+            print("\nError occurred:", e + "\n")
 
 
 def write_csv_and_txt(data, output_path_text, output_path_csv):
