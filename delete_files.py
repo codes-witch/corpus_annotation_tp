@@ -1,13 +1,13 @@
 import os
 
-# def delete_all_in(directory):
-#     #directory = "data/output"
-#     for root, dirs, files in os.walk(directory):
-#         for file in files:
-#             if file.endswith(".csv") or file.endswith(".txt"):
-#                 file_path = os.path.join(root, file)
-#                 os.remove(file_path)
-#                 print("Deleted:", file_path)
+def delete_all_in(directory):
+    #directory = "data/output"
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".csv") or file.endswith(".txt"):
+                file_path = os.path.join(root, file)
+                os.remove(file_path)
+                print("Deleted:", file_path)
 
 def delete_ready(input_dir, output_dir):
     # Iterate through the files in the input directory
@@ -33,4 +33,4 @@ def delete_ready(input_dir, output_dir):
 if __name__ == "__main__":
     delete_ready("data/input", "data/output")
     print("\nDeleted newly finished\n")
-
+    # delete_all_in("data/input")

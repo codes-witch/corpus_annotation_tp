@@ -10,9 +10,11 @@ import utils
 import re
 
 start_time = time.process_time()
+total_timed_out = 0
+MAX_TIME_OUT = 1
+
 
 def annotate_text(url, input_path, output_path_text, output_path_csv, max_size):
-
     with open(input_path, "r") as infile:
         # Polke can take a max of 500 words.
         text = infile.read()
@@ -56,24 +58,47 @@ def annotate_text(url, input_path, output_path_text, output_path_csv, max_size):
         send_requests(text_chunks, url, output_path_text, output_path_csv)
 
 
-def send_requests(text_chunks, url, output_path_text, output_path_csv):
+def send_requests(text_chunks, url, output_path_text, output_path_csv, total_timed_out=total_timed_out):
     for text in text_chunks:
-        print("Text length:", len(text), "NUM WORDS", len(text.split()))
+        timeout = 8
+
+        len_words = len(text.split())
+        print("Text length:", len(text), "NUM WORDS", len_words)
+
+        if len_words > 250:
+            timeout = 17
+        elif len_words > 150:
+            timeout = 12
+
         text = text.replace(" ", "%20").replace("\n", "%0A")
         url = url + text
         try:
-            request = requests.post(url, timeout=30)  # Set a max time in seconds
+            print(timeout)
+            request = requests.post(url, timeout=timeout)  # Set a max time in seconds
             if request.status_code != 200:
                 print("\nError with status code {}".format(request.status_code) + ": " + input_path + "\n")
             else:
                 data = request.json()
                 # print("NUMBER OF ANNOTATIONS in " + input_path, len(data["annotationList"]))
                 write_csv_and_txt(data, output_path_text, output_path_csv)
+                os.remove(input_path)
 
         # If exceptions are raised, move the input file to a different directory
         except requests.exceptions.Timeout:
             print("\nRequest timed out:", input_path + "\n")
-            # get filename and level
+            total_timed_out += 1
+
+            # TODO restart server if too many requests have timed out
+            # if total_timed_out >= MAX_TIME_OUT:
+            #     print("Timeout threshold exceeded. Restarting the server...")
+            #
+            #     # Trigger the bash script to restart the server
+            #     subprocess.run(["bash", "restart_server.sh"])
+            #
+            #     print("Waiting for server to restart...")
+            #     time.sleep(restart_wait_time)
+            # # get filename and level
+
             filename = os.path.basename(input_path)
             level = os.path.basename(os.path.dirname(input_path))
             timeout_level_path = os.path.join("data/timeout", level)
@@ -84,7 +109,7 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
             # move the file
             os.rename(input_path, os.path.join(timeout_level_path, filename))
         except requests.exceptions.RequestException as e:
-            print("\nError occurred:", e + "\n")
+            print("\n\nError occurred\n\n")
             filename = os.path.basename(input_path)
             level = os.path.basename(os.path.dirname(input_path))
             err_level_path = os.path.join("data/error", level)
@@ -112,7 +137,7 @@ def write_csv_and_txt(data, output_path_text, output_path_csv):
             end = annotation["end"]
             writer.writerow([construct_id, begin, end])
 
-        print("CSV file updated:", output_path_csv)
+        print("CSV file updated:", output_path_csv + "\n\n")
 
     with open(output_path_text + ".txt", "w") as textfile:
 
@@ -121,23 +146,16 @@ def write_csv_and_txt(data, output_path_text, output_path_csv):
 
 
 if __name__ == "__main__":
-    url = "http://kibi.group:4000/extractor?text="
-    input_dir = "data/timeout/"
+    url = "http://localhost:4000/extractor?text="
+    input_dir = "data/input/"
     output_dir = "data/output/"
 
-    # for out_dir in ["data/output/egp/xmi/" + level for level in levels]:
-    #     if not os.path.exists(out_dir):
-    #         os.makedirs(out_dir)
-    
-    for input_path in sorted(utils.get_file_paths(input_dir)):
+    for input_path in utils.get_file_paths(input_dir):
         print("Input", input_path)
         level = os.path.split(input_path)[0][-2:]
-        # print("Level", level)
         output_path_text = os.path.join(output_dir, level, "text", os.path.split(input_path)[1][:-4])
         output_path_csv = os.path.join(output_dir, level, "csv", os.path.split(input_path)[1][:-4])
-        print("Output", output_path_text)
-        print("Started annotating at ", datetime.now().time())
-        annotate_text(url, input_path, output_path_text, output_path_csv, 500)
+        annotate_text(url, input_path, output_path_text, output_path_csv, 450)
 
     print("\nTime elapsed: ", time.process_time() - start_time, "seconds\n")
 
