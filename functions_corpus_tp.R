@@ -175,3 +175,12 @@ make_long_feats_df <- function(dataframe){
   
   return(dataframe)
 }
+
+plot_percentages <- function(dataframe_long){
+  dataframe_long$feature <- as.factor(dataframe_long$feature)
+  ggplot(dataframe_long, aes(x = unit, y = percentage, color = feature)) +
+         geom_line() +
+         xlab("Units") +
+         ylab("Percentage of Presence in Texts") +
+         scale_x_continuous(breaks = seq(1, max(dataframe_long$unit), by = 10), labels = seq(1, max(dataframe_long$unit), by = 10))
+}
