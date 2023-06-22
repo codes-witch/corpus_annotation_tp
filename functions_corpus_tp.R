@@ -57,6 +57,9 @@ add_cefr_levels <- function(dataframe){
   return (dataframe)
 }
 
+# For renaming the filenames to always have access to unit and id
+# Dataframe is the reference df where we get the units from
+# 
 put_units_in_filenames <- function(directory_path, dataframe){
   
   # Get the list of files in the directory
@@ -67,6 +70,8 @@ put_units_in_filenames <- function(directory_path, dataframe){
     # Extract the filename without extension
     file_name <- tools::file_path_sans_ext(basename(file_path))
     print(file_name)
+    
+    # Don'tadd unit if it already has it
     if (grepl("_", file_name)){
       next
     }
@@ -84,9 +89,12 @@ put_units_in_filenames <- function(directory_path, dataframe){
   
 }
 
-count_texts_per_unit <- function(directory_path, unit_count_df) {
-  file_list <- list.files(directory_path)
-  
+# Use this for calculating the percentages
+count_texts_per_unit <- function(directory_path) {
+  file_list <- list.files(directory_path, recursive = TRUE, pattern = "\\.txt$")
+  unit_count_df = data.frame(matrix(nrow = 128, ncol = 1))
+  unit_count_df[] <- 0
+  colnames(unit_count_df) <- c("n_texts")
   for (file_path in file_list){
     print(file_path)
     # get the file unit and id
@@ -96,7 +104,6 @@ count_texts_per_unit <- function(directory_path, unit_count_df) {
     # add one to the unit counts
     unit_count_df$n_texts[file_unit] <- unit_count_df$n_texts[file_unit] + 1 
     
-
   }
   return(unit_count_df)
 }
@@ -128,6 +135,7 @@ get_feats_in_units_df <- function(all_features, directory_path) {
       feats_in_units[unit, feat] <- feats_in_units[unit, feat] + 1
     }
   }
+  feats_in_units <- cbind(unit = c(1:nrow(feats_in_units)), feats_in_units)
   
   return(feats_in_units)
 }
@@ -154,4 +162,9 @@ add_newline_to_files <- function(directory_path) {
       print("New line added")
     }
   }
+}
+
+
+make_long_feats_df <- function(dataframe){
+  pivot_longer(dataframe, cols = -unit, names_to = "feature", values_to = "percentage")
 }
