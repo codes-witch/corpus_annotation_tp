@@ -182,5 +182,5 @@ plot_percentages <- function(dataframe_long){
          geom_line() +
          xlab("Units") +
          ylab("Percentage of Presence in Texts") +
-         scale_x_continuous(breaks = seq(1, max(dataframe_long$unit), by = 10), labels = seq(1, max(dataframe_long$unit), by = 10))
+         scale_x_continuous(breaks = seq(1, max(dataframe_long$unit), by = 24), labels = seq(1, max(dataframe_long$unit), by = 24))
 }
