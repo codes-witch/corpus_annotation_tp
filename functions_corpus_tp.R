@@ -170,5 +170,8 @@ add_newline_to_files <- function(directory_path) {
 
 
 make_long_feats_df <- function(dataframe){
-  pivot_longer(dataframe, cols = -unit, names_to = "feature", values_to = "percentage")
+  dataframe <- pivot_longer(dataframe, cols = -unit, names_to = "feature", values_to = "percentage")
+  dataframe$feature = as.numeric(dataframe$feature)
+  
+  return(dataframe)
 }
