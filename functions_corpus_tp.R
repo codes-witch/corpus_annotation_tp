@@ -114,7 +114,7 @@ features_in_text_file <- function(file_path){
 
 # Each row in feats_in_units corresponds to a unit and each column corresponds to a feature. 
 # The values in the cells are how many texts contain feature C in unit R 
-get_feats_in_units_df <- function(all_features, directory_path) {
+get_feats_in_units_df <- function(all_features, directory_path, make_long = TRUE) {
   file_list <- list.files(directory_path, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE)
   
   # define dataframe:
@@ -136,6 +136,10 @@ get_feats_in_units_df <- function(all_features, directory_path) {
     }
   }
   feats_in_units <- cbind(unit = c(1:nrow(feats_in_units)), feats_in_units)
+  
+  if (make_long){
+    feats_in_units <- make_long_feats_df(feats_in_units)
+  }
   
   return(feats_in_units)
 }
