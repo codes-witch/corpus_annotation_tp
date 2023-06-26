@@ -1,3 +1,6 @@
+# -----------------------------------------------------------------------
+# ------------------------------ DATA PREP ------------------------------
+# -----------------------------------------------------------------------
 text_files_from_df <- function(dataframe, directory) {
   # Create the directory to store the text files (if it doesn't exist)
   dir.create(directory, showWarnings = FALSE)
@@ -59,7 +62,6 @@ add_cefr_levels <- function(dataframe){
 
 # For renaming the filenames to always have access to unit and id
 # Dataframe is the reference df where we get the units from
-# 
 put_units_in_filenames <- function(directory_path, dataframe){
   
   # Get the list of files in the directory
@@ -89,6 +91,13 @@ put_units_in_filenames <- function(directory_path, dataframe){
   
 }
 
+
+
+# -------------------------------------------------------------------
+# ------------------------------ COUNTS------------------------------
+# -------------------------------------------------------------------
+
+
 # Use this for calculating the percentages
 count_texts_per_unit <- function(directory_path) {
   file_list <- list.files(directory_path, recursive = TRUE, pattern = "\\.txt$")
@@ -108,9 +117,34 @@ count_texts_per_unit <- function(directory_path) {
   return(unit_count_df)
 }
 
+
+
+count_texts_per_level <- function(directory_path){
+  file_list <- list.files(directory_path, recursive = TRUE, pattern = "\\.txt$")
+  level_count_df <- data.frame(level = c("a1", "a2", "b1", "b2", "c1", "c2"), n_texts = 0)
+  
+  for (file_path in file_list){
+    print(file_path)
+    # get the file level and id
+    level <- str_extract(file_path, "[abc]\\d")
+    file_id <- str_extract(file_path, "(?<=_)\\d+")
+    
+    # find the row index based on the level
+    row_index <- which(level_count_df$level == level)
+    print(row_index)
+    
+    level_count_df$n_texts[row_index] <- level_count_df$n_texts[row_index] +1
+    
+  }
+  return(level_count_df)
+  
+}
+
+
 features_in_text_file <- function(file_path){
   return(unique(readLines(file_path)))
 }
+
 
 # Each row in feats_in_units corresponds to a unit and each column corresponds to a feature. 
 # The values in the cells are how many texts contain feature C in unit R 
@@ -126,6 +160,7 @@ get_feats_in_units_df <- function(all_features, directory_path, make_long = TRUE
   for (file_path in file_list) {
     # Get the unique features in the text
     unique_feats = features_in_text_file(file_path)
+    # get unit text belongs to
     unit <- as.integer(str_extract(file_path, "\\d+(?=_)"))
     
     print(file_path)
@@ -138,7 +173,7 @@ get_feats_in_units_df <- function(all_features, directory_path, make_long = TRUE
   feats_in_units <- cbind(unit = c(1:nrow(feats_in_units)), feats_in_units)
   
   if (make_long){
-    feats_in_units <- make_long_feats_df(feats_in_units)
+    feats_in_units <- make_long_feats_df(feats_in_units, "unit", "total")
   }
   
   return(feats_in_units)
@@ -169,14 +204,72 @@ add_newline_to_files <- function(directory_path) {
 }
 
 
-make_long_feats_df <- function(dataframe){
-  dataframe <- pivot_longer(dataframe, cols = -unit, names_to = "feature", values_to = "percentage")
+make_long_feats_df <- function(dataframe, exclude_col, values_colname){
+  dataframe <- pivot_longer(dataframe, cols = -{{exclude_col}}, names_to = "feature", values_to = values_colname)
   dataframe$feature = as.numeric(dataframe$feature)
   
   return(dataframe)
 }
 
-plot_percentages <- function(dataframe_long){
+# Each row in feats_in_level corresponds to a level and each column corresponds to a feature. 
+get_feats_in_levels_df <- function(all_features, directory_path, make_long = TRUE, percentage = TRUE) {
+  file_list <- list.files(directory_path, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE)
+  
+  # define dataframe:
+  feats_in_levels <- data.frame(matrix(ncol = length(all_features), nrow = 6))
+  # make all NANs 0
+  feats_in_levels[] <- 0
+  
+  colnames(feats_in_levels) <- all_features
+  print(file_list)
+  
+  # get number of files per level
+  level_counts <- count_texts_per_level(directory_path)
+  
+  for (file_path in file_list) {
+    print(file_path)
+    # Get the unique features in the text
+    unique_feats = features_in_text_file(file_path)
+    # Get the level
+    level <- str_extract(file_path, "[abc]\\d")
+    if (level == "a1"){
+      level_num = 1
+    } else if (level == "a2") {
+      level_num = 2
+    } else if (level == "b1") {
+      level_num = 3
+    } else if (level == "b2") {
+      level_num = 4
+    } else if (level == "c1") {
+      level_num = 5
+    } else if (level == "c2") {
+      level_num = 6
+    }
+    
+    for (feat in unique_feats) {
+      feats_in_levels[level_num , feat] <- feats_in_levels[level_num , feat]  + 1
+    }
+    
+    
+  }
+  
+  if (percentage){
+    feats_in_levels <- feats_in_levels / level_counts$n_texts
+    print(feats_in_levels)
+  }
+  
+  
+  # add the level names
+  feats_in_levels = cbind(level = c("a1", "a2", "b1", "b2", "c1", "c2"), feats_in_levels)
+  
+  if (make_long){
+    feats_in_levels <- make_long_feats_df(feats_in_levels, "level", "total")
+  }
+  return(feats_in_levels)
+  
+}
+
+plot_percentages_unit <- function(dataframe_long){
   dataframe_long$feature <- as.factor(dataframe_long$feature)
   ggplot(dataframe_long, aes(x = unit, y = percentage, color = feature)) +
     geom_line() +
