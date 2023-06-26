@@ -83,7 +83,6 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv, total_tim
                 print("\nError with status code {}".format(request.status_code) + ": " + input_path + "\n")
             else:
                 data = request.json()
-                # print("NUMBER OF ANNOTATIONS in " + input_path, len(data["annotationList"]))
                 write_csv_and_txt(data, output_path_text, output_path_csv)
 
                 # if the text is very long, only delete when we are done processing all the chunks
@@ -93,7 +92,9 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv, total_tim
         # If exceptions are raised, move the input file to a different directory
         except requests.exceptions.Timeout:
             print("\nRequest timed out:", input_path + "\n")
+
             total_timed_out += 1
+
 
             filename = os.path.basename(input_path)
             level = os.path.basename(os.path.dirname(input_path))
@@ -151,7 +152,5 @@ if __name__ == "__main__":
         level = os.path.split(input_path)[0][-2:]
         output_path_text = os.path.join(output_dir, level, "text", os.path.split(input_path)[1][:-4])
         output_path_csv = os.path.join(output_dir, level, "csv", os.path.split(input_path)[1][:-4])
-        annotate_text(url, input_path, output_path_text, output_path_csv, 100)
-
-    print("\nTime elapsed: ", time.process_time() - start_time, "seconds\n")
+        annotate_text(url, input_path, output_path_text, output_path_csv, 450)
 
