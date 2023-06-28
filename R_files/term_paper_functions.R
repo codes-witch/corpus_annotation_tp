@@ -255,9 +255,7 @@ get_feats_in_levels_df <- function(all_features, directory_path, make_long = TRU
   
   if (percentage){
     feats_in_levels <- feats_in_levels / level_counts$n_texts
-    print(feats_in_levels)
   }
-  
   
   # add the level names
   feats_in_levels = cbind(level = c("a1", "a2", "b1", "b2", "c1", "c2"), feats_in_levels)
@@ -276,4 +274,77 @@ plot_percentages_unit <- function(dataframe_long){
     xlab("Units") +
     ylab("Percentage of Presence in Texts") +
     scale_x_continuous(breaks = seq(1, max(dataframe_long$unit), by = 24), labels = seq(1, max(dataframe_long$unit), by = 24))
+}
+
+plot_percentages_level <- function(dataframe_long, plot_title) {
+  dataframe_long$feature <- as.factor(dataframe_long$feature)
+  # dataframe_long$level <- factor(dataframe_long$level, levels = c("a1", "a2", "b1", "b2", "c1", "c2"))
+  ggplot(dataframe_long, aes(x = level, y = total, color = feature, group = feature)) +
+    geom_line() +
+    xlab("Levels") +
+    ylab("Percentage of Presence in Texts") +
+    scale_x_discrete(
+      breaks = c("a1", "a2", "b1", "b2", "c1", "c2"),
+      labels = c("A1", "A2", "B1", "B2", "C1", "C2")
+    ) +
+    ggtitle(plot_title)
+}
+
+get_lvl_feats <- function(level, dataframe_long){
+  level = tolower(level)
+  dataframe_long$feature <- as.numeric(dataframe_long$feature)
+  if (level == "a1"){
+    level_df <- dataframe_long[dataframe_long$feature <= 109,]
+  } else if (level == "a2") {
+    level_df <- dataframe_long[dataframe_long$feature >= 110 & dataframe_long$feature <=397,]
+  } else if (level == "b1") {
+    level_df <- dataframe_long[dataframe_long$feature >= 401 & dataframe_long$feature <=734,]
+  } else if (level == "b2"){
+    level_df <- dataframe_long[dataframe_long$feature >= 739 & dataframe_long$feature <=977,]
+  } else if (level == "c1") {
+    level_df <- dataframe_long[dataframe_long$feature >= 982 & dataframe_long$feature <=1105,]
+  } else if (level == "c2") {
+    level_df <- dataframe_long[dataframe_long$feature >= 1111,]
+  } else {
+    print("INVALID LEVEL!")
+  }
+  
+  return(level_df)
+}
+
+create_table_image <- function(dataframe) {
+  # Create a table from the dataframe using the kable function from the knitr package
+  table <- knitr::kable(dataframe)
+  
+  # Convert the table to a grob object
+  table_grob <- tableGrob(table)
+  
+  # Create a blank plot to save the table as an image
+  blank_plot <- ggplot() +
+    theme_void()
+  
+  # Combine the blank plot and table grob using grid.arrange from the gridExtra package
+  combined <- grid.arrange(blank_plot, table_grob, nrow = 2)
+  
+  # Save the combined image as a PNG file
+  ggsave("table.png", combined, width = 10, height = 4, dpi = 300)
+}
+
+#Returns a vector that contains all features in a df that at some level reach a given percentage
+features_reach_percent <- function(dataframe_long, percentage) {
+  v = c();
+  for (r in 1:nrow(dataframe_long)) {
+    if (dataframe_long[r,]$total > percentage) {
+      v <- append(v, dataframe_long[r,]$feature)
+    }
+  }
+  
+  return(unique(v))
+}
+
+feats_between_percents <- function(dataframe_long, lower_bound, upper_bound){
+  v1 <- features_reach_percent(dataframe_long, lower_bound)
+  v2 <- features_reach_percent(dataframe_long, upper_bound)
+  
+  return(setdiff(v1, v2))
 }
