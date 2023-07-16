@@ -35,7 +35,7 @@ delete_column <- function(dataframe, colname) {
   return(dataframe)
 }
 
-
+# To add cefr levels when we have EF levels
 add_cefr_levels <- function(dataframe){
   dataframe$cefr_level <- NA
   # CEFR levels are factors
@@ -58,6 +58,18 @@ add_cefr_levels <- function(dataframe){
   }
   
   return (dataframe)
+}
+
+# To add levels to a dataframe based on the feature
+add_feature_level <- function(dataframe){
+  dataframe %>% mutate(feat_level = case_when(
+         as.numeric(feature) < 110 ~ "A1",
+         as.numeric(feature) < 401 ~ "A2",
+         as.numeric(feature) < 739 ~ "B1",
+         as.numeric(feature) < 982 ~ "B2",
+         as.numeric(feature) < 1111 ~ "C1",
+         TRUE ~ "C2" # Optional default value if none of the conditions match
+    ))
 }
 
 # For renaming the filenames to always have access to unit and id
@@ -267,6 +279,9 @@ get_feats_in_levels_df <- function(all_features, directory_path, make_long = TRU
   
 }
 
+#--------------------------------------------------------
+#-------------------------PLOTS--------------------------
+#--------------------------------------------------------
 plot_percentages_unit <- function(dataframe_long){
   dataframe_long$feature <- as.factor(dataframe_long$feature)
   ggplot(dataframe_long, aes(x = unit, y = percentage, color = feature)) +
@@ -290,6 +305,16 @@ plot_percentages_level <- function(dataframe_long, plot_title) {
     ggtitle(plot_title)
 }
 
+
+# Make the boxplot by grouping different feature levels - optional vector for ylim
+make_boxpolot_all <- function(df, ylim_vector=NULL){
+  ggplot(df, aes(x=level, y=total, fill=feat_level))+
+    geom_boxplot(notch = TRUE)+
+    labs(fill="Feature level", x="Text level", y="Percentage of presence")+
+    coord_cartesian(ylim = ylim_vector)
+}
+
+# For getting a dataframe with features of only one level
 get_lvl_feats <- function(level, dataframe_long){
   level = tolower(level)
   dataframe_long$feature <- as.numeric(dataframe_long$feature)
