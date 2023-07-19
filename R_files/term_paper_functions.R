@@ -1,26 +1,26 @@
 # -----------------------------------------------------------------------
 # ------------------------------ DATA PREP ------------------------------
 # -----------------------------------------------------------------------
-text_files_from_df <- function(dataframe, directory) {
+
+# Grab the text from the ef dataframe and put it in .txt files
+ef_text_2_txt <- function(dataframe, directory) {
   # Create the directory to store the text files (if it doesn't exist)
   dir.create(directory, showWarnings = FALSE)
   
-  # Iterate over each row in the dataframe
+  # Iterate over each row in the df
   for (i in 1:nrow(dataframe)) {
-    # Create a subdirectory for each level (if it doesn't exist)
+    # Create a subdir for each level (if it doesn't exist)
     level_directory <- paste0(directory, "/", dataframe$cefr_level[i])
     dir.create(level_directory, showWarnings = FALSE)
     
     # Generate a unique filename for each row
     filename <- paste0(level_directory, "/", dataframe$id[i], ".txt")
     
-    # Open the file connection
     file_conn <- file(filename, open = "w")
     
     # Write the text content to the file
     writeLines(as.character(dataframe$text[i]), con = file_conn)
-    
-    # Close the file connection
+
     close(file_conn)
   }
 }
@@ -36,7 +36,7 @@ delete_column <- function(dataframe, colname) {
 }
 
 # To add cefr levels when we have EF levels
-add_cefr_levels <- function(dataframe){
+add_cefr_from_ef_levels <- function(dataframe){
   dataframe$cefr_level <- NA
   # CEFR levels are factors
   dataframe$cefr_level <- factor(dataframe$cefr, levels = c("a1", "a2", "b1", "b2", "c1", "c2"))
@@ -103,6 +103,30 @@ put_units_in_filenames <- function(directory_path, dataframe){
   
 }
 
+add_newline_to_files <- function(directory_path) {
+  # Get a list of all files in the directory and its subdirectories
+  file_list <- list.files(directory_path, recursive = TRUE, full.names = TRUE)
+  
+  # Loop through each file
+  for (file_path in file_list) {
+    print(file_path)
+    # Check if the file is a text file
+    if (endsWith(file_path, ".txt")) {
+      # Read the contents of the file
+      file_contents <- readLines(file_path)
+      
+      # Add a new line at the end of the file contents
+      file_contents <- c(file_contents)
+      
+      # Write the updated contents back to the file
+      writeLines(file_contents, file_path)
+      
+      # Print a message for each file processed
+      print("New line added")
+    }
+  }
+}
+
 
 
 # -------------------------------------------------------------------
@@ -130,7 +154,7 @@ count_texts_per_unit <- function(directory_path) {
 }
 
 
-
+# 6 levels x 2 cols (level, counts). Use for percentages
 count_texts_per_level <- function(directory_path){
   file_list <- list.files(directory_path, recursive = TRUE, pattern = "\\.txt$")
   level_count_df <- data.frame(level = c("a1", "a2", "b1", "b2", "c1", "c2"), n_texts = 0)
@@ -152,18 +176,26 @@ count_texts_per_level <- function(directory_path){
   
 }
 
-
+# File path is the output file
 features_in_text_file <- function(file_path){
   return(unique(readLines(file_path)))
 }
 
 
+# For making a dataframe long. 
+make_long_feats_df <- function(dataframe, exclude_col, values_colname){
+  dataframe <- pivot_longer(dataframe, cols = -{{exclude_col}}, names_to = "feature", values_to = values_colname)
+  dataframe$feature = as.numeric(dataframe$feature)
+  
+  return(dataframe)
+}
+
+# unit x features in short form. Also possible to make long.
 # Each row in feats_in_units corresponds to a unit and each column corresponds to a feature. 
 # The values in the cells are how many texts contain feature C in unit R 
-get_feats_in_units_df <- function(all_features, directory_path, make_long = TRUE) {
+get_feats_in_units <- function(all_features, directory_path, make_long = TRUE) {
   file_list <- list.files(directory_path, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE)
   
-  # define dataframe:
   feats_in_units <- data.frame(matrix(ncol = 659, nrow = 128))
   # make all NANs 0
   feats_in_units[is.na(feats_in_units)] <- 0
@@ -178,6 +210,7 @@ get_feats_in_units_df <- function(all_features, directory_path, make_long = TRUE
     print(file_path)
     print(unique_feats)
     
+    # Per feat in text, add one to the counts
     for (feat in unique_feats) {
       feats_in_units[unit, feat] <- feats_in_units[unit, feat] + 1
     }
@@ -191,40 +224,8 @@ get_feats_in_units_df <- function(all_features, directory_path, make_long = TRUE
   return(feats_in_units)
 }
 
-add_newline_to_files <- function(directory_path) {
-  # Get a list of all files in the directory and its subdirectories
-  file_list <- list.files(directory_path, recursive = TRUE, full.names = TRUE)
-  
-  # Loop through each file
-  for (file_path in file_list) {
-    print(file_path)
-    # Check if the file is a text file
-    if (endsWith(file_path, ".txt")) {
-      # Read the contents of the file
-      file_contents <- readLines(file_path)
-      
-      # Add a new line at the end of the file contents
-      file_contents <- c(file_contents)
-      
-      # Write the updated contents back to the file
-      writeLines(file_contents, file_path)
-      
-      # Print a message for each file processed
-      print("New line added")
-    }
-  }
-}
-
-
-make_long_feats_df <- function(dataframe, exclude_col, values_colname){
-  dataframe <- pivot_longer(dataframe, cols = -{{exclude_col}}, names_to = "feature", values_to = values_colname)
-  dataframe$feature = as.numeric(dataframe$feature)
-  
-  return(dataframe)
-}
-
 # Each row in feats_in_level corresponds to a level and each column corresponds to a feature. 
-get_feats_in_levels_df <- function(all_features, directory_path, make_long = TRUE, percentage = TRUE) {
+get_feats_in_levels <- function(all_features, directory_path, make_long = TRUE, percentage = TRUE) {
   file_list <- list.files(directory_path, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE)
   
   # define dataframe:
@@ -305,9 +306,21 @@ plot_percentages_level <- function(dataframe_long, plot_title) {
     ggtitle(plot_title)
 }
 
+plot_cluster_means <- function(cluster_means_long, plot_title){
+  cluster_means_long$cluster <- as.factor(cluster_means_long$cluster)
+  ggplot(cluster_means_long, aes(x = level, y = value, color = cluster, group = cluster)) +
+    geom_line() +
+    xlab("Levels") +
+    ylab("Percentage of Presence in Texts") +
+    scale_x_discrete(
+      breaks = c("a1", "a2", "b1", "b2", "c1", "c2"),
+      labels = c("A1", "A2", "B1", "B2", "C1", "C2")
+    ) +
+    ggtitle(plot_title)
+}
 
 # Make the boxplot by grouping different feature levels - optional vector for ylim
-make_boxpolot_all <- function(df, ylim_vector=NULL){
+make_boxpolot_group <- function(df, ylim_vector=NULL){
   ggplot(df, aes(x=level, y=total, fill=feat_level))+
     geom_boxplot(notch = TRUE)+
     labs(fill="Feature level", x="Text level", y="Percentage of presence")+
@@ -315,7 +328,7 @@ make_boxpolot_all <- function(df, ylim_vector=NULL){
 }
 
 # For getting a dataframe with features of only one level
-get_lvl_feats <- function(level, dataframe_long){
+get_level_feats <- function(level, dataframe_long){
   level = tolower(level)
   dataframe_long$feature <- as.numeric(dataframe_long$feature)
   if (level == "a1"){
@@ -337,6 +350,10 @@ get_lvl_feats <- function(level, dataframe_long){
   return(level_df)
 }
 
+
+# ----------------------------------------------------
+# ----------------------- MISC -----------------------
+# ----------------------------------------------------
 create_table_image <- function(dataframe) {
   # Create a table from the dataframe using the kable function from the knitr package
   table <- knitr::kable(dataframe)
@@ -372,4 +389,11 @@ feats_between_percents <- function(dataframe_long, lower_bound, upper_bound){
   v2 <- features_reach_percent(dataframe_long, upper_bound)
   
   return(setdiff(v1, v2))
+}
+
+add_clusters_to_long <- function(clusters, df_long) {
+  feats <- unique(df_long$feature)
+  feats_cluster <- data.frame("feature" = feats, "cluster" = clusters)
+  df_long$cluster <- feats_cluster$cluster[match(df_long$feature, feats_cluster$feature)]
+  return(df_long)
 }
