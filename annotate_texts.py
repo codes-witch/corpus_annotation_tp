@@ -60,29 +60,35 @@ def annotate_text(url, input_path, output_path_text, output_path_csv, max_size=2
 
 
 def send_requests(text_chunks, url, output_path_text, output_path_csv):
+    if len(text_chunks) > 1:
+        print("More tha one chunk")
     for text in text_chunks:
-
-        timeout = 10
         len_words = len(text.split())
-        print("Text length:", len(text), "NUM WORDS", len_words)
+        print("NUM WORDS: ", len_words)
         print(text)
 
         # obtain level from the folder the file is in.
         level = os.path.basename(os.path.dirname(input_path))
 
-        if len_words > 150:
-            timeout = 15
-        if level in {"b2", "c1", "c2"}:
-            timeout = 35
-            print("HARD LEVEL!")
+        timeout = get_timeout(level, len_words)
 
         is_last_chunk = text == text_chunks[-1]
         text = text.replace(" ", "%20").replace("\n", "%0A")
         url = url + text
+
         try:
             request = requests.post(url, timeout=timeout)  # Set a max time in seconds
             if request.status_code != 200:
                 print("\nError with status code {}".format(request.status_code) + ": " + input_path + "\n")
+                # TODO check here if there are bugs
+                filename = os.path.basename(input_path)
+                level = os.path.basename(os.path.dirname(input_path))
+                err_level_path = os.path.join("data/error", level)
+                # TODO actually, here we should do the same thing as in timeout: write the problematic chunk to the file
+                #  and hope to send later
+                os.makedirs(err_level_path, exist_ok=True)
+                if is_last_chunk:
+                    os.rename(input_path, os.path.join(err_level_path, filename))
             else:
                 data = request.json()
                 write_csv_and_txt(data, output_path_text, output_path_csv)
@@ -110,9 +116,17 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
             #  that did pass. Even better: write the chunks that timed out in a file in the timeout folder, but keep
             #  output file. Ideally, if the corresponding file exists in output and we run the script using timeout
             #  folder as input, we can append the new features.
-            if is_last_chunk:
-                # move the file
-                os.rename(input_path, os.path.join(timeout_level_path, filename))
+            # if is_last_chunk:
+            #     # move the file
+            #     os.rename(input_path, os.path.join(timeout_level_path, filename))
+
+            # write the chunk that was not processed to the file in timeout folder
+            # TODO check when it needs to append (while running normally) and when it needs to overwrite
+            #  (when it is the first chunk and the input path is the timeout folder)
+            with open(os.path.join(timeout_level_path, filename), "a") as textfile:
+                textfile.write(text)
+
+
         except requests.exceptions.RequestException as e:
             print("\n\nError occurred\n\n")
             filename = os.path.basename(input_path)
@@ -150,9 +164,19 @@ def write_csv_and_txt(data, output_path_text, output_path_csv):
         textfile.write("\n".join(str(construct_id) for construct_id in construct_ids))
 
 
+def get_timeout(level, len_words):
+    timeout = 10
+    if len_words > 150:
+        timeout = 15
+    if level in {"b2", "c1", "c2"}:
+        timeout = 35
+        print("HARD LEVEL!")
+
+    return timeout
+
 if __name__ == "__main__":
-    url = "http://localhost:4000/extractor?text="
-    input_dir = "data/input /"
+    url = "http://kibi.group:4000/extractor?text="
+    input_dir = "data/input/"
     output_dir = "data/output/"
 
     for input_path in utils.get_file_paths(input_dir):
