@@ -194,4 +194,4 @@ c2_long <- add_clusters_to_long(kmeans_out_c2$cluster, c2_long)
 
 # get a df where features are matched to the levels they belong to
 with_feat_lvl <- add_feature_level(feat_lvl_percent_long)
-make_boxpolot_group(with_feat_lvl[with_feat_lvl$feat_level != "A1" & with_feat_lvl$feat_level != "A2",], ylim_vector = c(0, 0.08))
+make_boxpolot_group(with_feat_lvl[with_feat_lvl$feat_level != "A1" & with_feat_lvl$feat_level != "A2" & with_feat_lvl$feat_level != "B1",], ylim_vector = c(0, 0.025))
