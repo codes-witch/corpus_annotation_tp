@@ -13,8 +13,9 @@ ef_text_2_txt <- function(dataframe, directory) {
     level_directory <- paste0(directory, "/", dataframe$cefr_level[i])
     dir.create(level_directory, showWarnings = FALSE)
     
-    # Generate a unique filename for each row
-    filename <- paste0(level_directory, "/", dataframe$id[i], ".txt")
+    lang_code <- if_else(is.na(dataframe$lang_iso[i]) || dataframe$lang_iso[i] == "", "xx", dataframe$lang_iso[i])
+    # Generate a unique filename for each row. Structure: ID_unit_L1.txt
+    filename <- paste0(level_directory, "/", dataframe$id[i], "_", dataframe$unit[i], "_", lang_code,  ".txt")
     
     file_conn <- file(filename, open = "w")
     
@@ -85,7 +86,7 @@ put_units_in_filenames <- function(directory_path, dataframe){
     file_name <- tools::file_path_sans_ext(basename(file_path))
     print(file_name)
     
-    # Don'tadd unit if it already has it
+    # Don't add unit if it already has it
     if (grepl("_", file_name)){
       next
     }
