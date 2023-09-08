@@ -156,21 +156,34 @@ count_texts_per_unit <- function(directory_path) {
 
 
 # 6 levels x 2 cols (level, counts). Use for percentages
-count_texts_per_level <- function(directory_path){
+count_texts_per_level <- function(directory_path, lang=NULL){
   file_list <- list.files(directory_path, recursive = TRUE, pattern = "\\.txt$")
   level_count_df <- data.frame(level = c("a1", "a2", "b1", "b2", "c1", "c2"), n_texts = 0)
   
   for (file_path in file_list){
     print(file_path)
-    # get the file level and id
+    # get the file level, unit, id and language. 
+    # The file naming convention is <level>/<id>_<unit>_<lang_iso>.txt
     level <- str_extract(file_path, "[abc]\\d")
-    file_id <- str_extract(file_path, "(?<=_)\\d+")
+    unit <- str_extract(file_path, "(?<=_)\\d+") 
+    file_id <- str_extract(file_path, "(?<=/)\\d+")
+    lang_iso <- str_extract(file_path, "[a-z]{2}")
+    print(paste0("level: ", level))
+    print(paste0("file_id: ", file_id))
+    print(paste0("unit: ", unit))
+    print(paste0("lang_iso: ", lang_iso))
     
     # find the row index based on the level
     row_index <- which(level_count_df$level == level)
-    print(row_index)
-    
-    level_count_df$n_texts[row_index] <- level_count_df$n_texts[row_index] +1
+    if (is.null(lang)) {
+      print("No lang param passed. Counting all texts.")
+      level_count_df$n_texts[row_index] <- level_count_df$n_texts[row_index] +1
+    } else if (tolower(lang) == lang_iso) {
+      print("Languages are equal. Counting this file.")
+      level_count_df$n_texts[row_index] <- level_count_df$n_texts[row_index] +1
+    } else {
+      print("Languages are not equal. Skipping this")
+    }
     
   }
   return(level_count_df)
