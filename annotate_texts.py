@@ -67,11 +67,11 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
 
                 # Write the chunk that caused the error to a file
                 with open(os.path.join(err_level_path, filename), "a") as textfile:
-                    textfile.write("\n<CHUNK>" + chunk + "</CHUNK>")
+                    textfile.write("\n" + chunk)
 
             else:
                 data = request.json()
-                write_csv_and_txt(data, output_path_text, output_path_csv, chunk)
+                write_csv_and_txt(data, output_path_text, output_path_csv, chunk, level)
 
             # only delete when we are done processing all the chunks
             if is_last_chunk:
@@ -104,7 +104,7 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
                 os.remove(input_path)
 
 
-def write_csv_and_txt(data, output_path_text, output_path_csv, chunk):
+def write_csv_and_txt(data, output_path_text, output_path_csv, chunk, level):
     csv_dir = os.path.dirname(output_path_csv)
     os.makedirs(csv_dir, exist_ok=True)
     txt_dir = os.path.dirname(output_path_text);
@@ -133,7 +133,7 @@ def write_csv_and_txt(data, output_path_text, output_path_csv, chunk):
     with open(output_path_text + ".txt", "a") as textfile:
         textfile.write("\n" + chunk)
 
-    update_nwords_file(chunk)
+    update_nwords_file(chunk, level)
 
 
 """
@@ -202,13 +202,15 @@ def find_eos_index(word_list):
 
     return eos_idx
 
-def update_nwords_file(chunk):
-    with open("./word_count.txt", "r") as progr_file:
+def update_nwords_file(chunk, level):
+    with open("./word_count_" + level + ".txt", "r") as progr_file:
         current_word_count = int(progr_file.read())
 
-    with open("./word_count.txt", "w") as progr_file:
+    with open("./word_count_" + level + ".txt", "w") as progr_file:
         current_word_count += len(chunk.split())
         progr_file.write(str(current_word_count))
+
+    print("./word_count_" + level + ".txt updated")
 
 
 if __name__ == "__main__":
