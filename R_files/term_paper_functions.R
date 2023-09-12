@@ -14,11 +14,11 @@ ef_text_2_txt <- function(dataframe, directory) {
     dir.create(level_directory, showWarnings = FALSE)
     print(level_directory)
     lang_code <- if_else(is.na(dataframe$lang_iso[i]) || dataframe$lang_iso[i] == "", "xx", dataframe$lang_iso[i])
-    # Generate a unique filename forwa each row. Structure: ID_unit_L1.txt
+    # filename for each row. Structure: ID_unit_L1.txt
     filename <- paste0(level_directory, "/", dataframe$id[i], "_", dataframe$unit[i], "_", lang_code,  ".txt")
     
     file_conn <- file(filename, open = "w")
-    
+
     # Write the text content to the file
     writeLines(as.character(dataframe$text[i]), con = file_conn)
 
@@ -38,9 +38,6 @@ delete_column <- function(dataframe, colname) {
 
 # To add cefr levels when we have EF levels
 add_cefr_from_ef_levels <- function(dataframe){
-  #dataframe$cefr_level <- NA
-  
-  #dataframe$cefr_level <- factor(dataframe$cefr_level, levels = c("a1", "a2", "b1", "b2", "c1", "c2"))
   for (i in 1:nrow(dataframe)) {
     print(i)
     if (dataframe$ef_level[i] <= 3){
@@ -71,10 +68,12 @@ add_feature_level <- function(dataframe){
          as.numeric(feature) < 739 ~ "B1",
          as.numeric(feature) < 982 ~ "B2",
          as.numeric(feature) < 1111 ~ "C1",
-         TRUE ~ "C2" # Optional default value if none of the conditions match
+         TRUE ~ "C2" # default value if no conditions match
     ))
 }
 
+
+# For renaming files to the pattern <file_id>_<unit>_<iso_code>.txt
 put_units_and_lang_in_filenames <-function(directory_path, dataframe) {
     print("in function")
     # Get the list of files in the directory
