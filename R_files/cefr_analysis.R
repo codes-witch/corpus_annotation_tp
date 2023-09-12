@@ -6,12 +6,14 @@ library(gridExtra)
 library("dplyr")
 library("stringr")
 library(tidyr)
-load("c1_long.RData")
-load("c2_long.RData")
+load("ef2_short.RData")
+
 
 
 ##### NEW DATA #####
+put_units_and_lang_in_filenames("../data/output/a1/text", ef2_short)
 n_texts_level <- count_texts_per_level("../data/output_to_30k/output/")
+n_pt_texts_level <- count_texts_per_level("test_input/", "pt")
 feats_level <- get_feats_in_levels(all_features, "../data/output_to_30k/output/", FALSE, FALSE)
 feats_level_percent <- get_feats_in_levels(all_features, "../data/output_to_30k/output/", FALSE, TRUE)
 feats_level_only <- feats_level[,2:ncol(feats_level)]
@@ -26,6 +28,19 @@ feats_level_percent <- feats_level_percent[, !colnames(feats_level_percent) %in%
 feats_level <- feats_level[, !colnames(feats_level) %in% zero_feats]
 
 
+# Get the can-do statement for each feature and add to the long dataframes
+feats_cando <- read.csv("../egp_list.csv", sep = ";", header = TRUE)
+feats_cando <- delete_column(feats_cando, "SubCategory")
+feats_cando <- delete_column(feats_cando, "Type")
+feats_cando <- delete_column(feats_cando, "Guideword")
+feats_cando <- delete_column(feats_cando, "Example")
+feats_cando <- delete_column(feats_cando, "Level")
+
+feats_level_percent_long$cando <- feats_cando$Can.do.statement[match(feats_level_percent_long$feature, feats_cando$EGP_ID)] 
+feats_level_percent_long$supercategory <- feats_cando$SuperCategory[match(feats_level_percent_long$feature, feats_cando$EGP_ID)]
+feats_level_percent_long$subcategory <- feats_cando$SubCategory[match(feats_level_percent_long$feature, feats_cando$EGP_ID)]
+feats_level_percent_long$guideword <- feats_cando$Guideword[match(feats_level_percent_long$feature, feats_cando$EGP_ID)]
+
 a1_long <- get_level_feats("A1", feats_level_percent_long)
 plot_percentages_level(a1_long, "Presence of A1 features per CEFR level")
 a2_long <- get_level_feats("A2", feats_level_percent_long)
@@ -39,8 +54,6 @@ c1_long <- c1_long[c1_long$total < 0.2,]
 plot_percentages_level(c1_long, "Presence of C1 features per CEFR level")
 c2_long <- get_level_feats("c2", feats_level_percent_long)
 plot_percentages_level(c2_long, "Presence of C2 features per CEFR level")
-
-make_boxpolot_group(a1_long)
 
 
 # Save the lond dfs
@@ -102,15 +115,11 @@ a1_scaled <- scale(a1)
 # Unscaled
 fviz_nbclust(a1, kmeans, method="wss") # I'll choose 3
 kmeans_out_a1 <- kmeans(a1, centers = 3, nstart = 100)
-
-# Scaled
-fviz_nbclust(a1_scaled, kmeans, method= "wss") # It's the same plot!
-kmeans_out_a1_scaled = kmeans(a1_scaled, centers = 3, nstart = 100)
+kmeans_out_a1_4_centers <- kmeans(a1, centers = 4, nstart = 100)
 
 # Visualize cluster
 fviz_cluster(list(data=a1, cluster= kmeans_out_a1$cluster), main = "A1 features cluster means (unscaled)")
-fviz_cluster(list(data=a1_scaled, cluster = kmeans_out_a1_scaled$cluster), main = "A1 features cluster means (scaled)")
-
+fviz_cluster(list(data=a1, cluster = kmeans_out_a1_4_centers$cluster))
 # Get the means of the clusters
 a1_cluster_means <- aggregate(a1, by=list(cluster=kmeans_out_a1$cluster), mean)
 colnames(a1_cluster_means) <- c("cluster", "a1", "a2", "b1", "b2", "c1", "c2")
@@ -182,13 +191,15 @@ c2_cluster_means_long$cluster <- as.factor(c2_cluster_means_long$cluster)
 plot_cluster_means(c2_cluster_means_long, "Clustering of C2 features")
 
 
-# Add clusters to long DFs with features
+# Add clusters to long DFs with features. Now we can see which features and can-do statements are in the clusters
 a1_long <- add_clusters_to_long(kmeans_out_a1$cluster, a1_long)
 a2_long <- add_clusters_to_long(kmeans_out_a2$cluster, a2_long)
 b1_long <- add_clusters_to_long(kmeans_out_b1$cluster, b1_long)
 b2_long <- add_clusters_to_long(kmeans_out_b2$cluster, b2_long)
 c1_long <- add_clusters_to_long(kmeans_out_c1$cluster, c1_long)
 c2_long <- add_clusters_to_long(kmeans_out_c2$cluster, c2_long)
+clfeats_level_percent_long <- add_clusters_to_long(kmeans_output$cluster, feats_level_percent_long)
+feats_level_percent_long <- add_feature_level(feats_level_percent_long)
 
 # ------------------- Make boxplots ------------------
 

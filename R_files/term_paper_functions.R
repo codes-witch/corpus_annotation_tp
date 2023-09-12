@@ -12,9 +12,9 @@ ef_text_2_txt <- function(dataframe, directory) {
     # Create a subdir for each level (if it doesn't exist)
     level_directory <- paste0(directory, "/", dataframe$cefr_level[i])
     dir.create(level_directory, showWarnings = FALSE)
-    
+    print(level_directory)
     lang_code <- if_else(is.na(dataframe$lang_iso[i]) || dataframe$lang_iso[i] == "", "xx", dataframe$lang_iso[i])
-    # Generate a unique filename for each row. Structure: ID_unit_L1.txt
+    # Generate a unique filename forwa each row. Structure: ID_unit_L1.txt
     filename <- paste0(level_directory, "/", dataframe$id[i], "_", dataframe$unit[i], "_", lang_code,  ".txt")
     
     file_conn <- file(filename, open = "w")
@@ -38,9 +38,9 @@ delete_column <- function(dataframe, colname) {
 
 # To add cefr levels when we have EF levels
 add_cefr_from_ef_levels <- function(dataframe){
-  dataframe$cefr_level <- NA
-  # CEFR levels are factors
-  dataframe$cefr_level <- factor(dataframe$cefr, levels = c("a1", "a2", "b1", "b2", "c1", "c2"))
+  #dataframe$cefr_level <- NA
+  
+  #dataframe$cefr_level <- factor(dataframe$cefr_level, levels = c("a1", "a2", "b1", "b2", "c1", "c2"))
   for (i in 1:nrow(dataframe)) {
     print(i)
     if (dataframe$ef_level[i] <= 3){
@@ -58,6 +58,8 @@ add_cefr_from_ef_levels <- function(dataframe){
     }
   }
   
+  # CEFR levels are factors
+  dataframe$cefr_level <- as.factor(dataframe$cefr_level)
   return (dataframe)
 }
 
@@ -72,6 +74,38 @@ add_feature_level <- function(dataframe){
          TRUE ~ "C2" # Optional default value if none of the conditions match
     ))
 }
+
+put_units_and_lang_in_filenames <-function(directory_path, dataframe) {
+    print("in function")
+    # Get the list of files in the directory
+    file_list <- list.files(directory_path, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE)
+    
+    # Iterate through each file
+    for (file_path in file_list) {
+      # Extract the filename without extension
+      file_name <- tools::file_path_sans_ext(basename(file_path))
+      print(file_name)
+      
+      # Find the corresponding unit in ef2 dataset
+      unit <- dataframe$unit[dataframe$id == file_name]
+      lang_iso <- dataframe$lang_iso[dataframe$id == file_name]
+      if (is.null(lang_iso) || lang_iso == "") {
+        lang_iso <- "xx"
+      } 
+      print(paste0("Unit: ", unit))
+      print(paste0("language ISO: ", lang_iso))
+      
+      # Rename the file
+      new_file_name <- paste0(file_name, "_", unit, "_", lang_iso, ".txt")
+      new_file_path <- file.path(directory_path, new_file_name)
+      file.rename(file_path, new_file_path)
+      print(paste0("New file path: ", new_file_path))
+    }
+    
+    
+}
+  
+
 
 # For renaming the filenames to always have access to unit and id
 # Dataframe is the reference df where we get the units from
