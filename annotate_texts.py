@@ -177,12 +177,12 @@ def get_text_chunks(words_to_send, max_words):
 
 
 def get_timeout(level, len_words):
-    timeout = 10
+    timeout = 7
     if len_words > 150:
         timeout = 15
     if level in {"b2", "c1", "c2"}:
-        timeout = 35
-        print("HARD LEVEL!")
+        timeout = 30
+        print("Text belongs to a difficult level (B2 or greater)")
 
     return timeout
 
