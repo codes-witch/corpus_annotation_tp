@@ -122,11 +122,11 @@ def write_csv_and_txt(data, output_path_text, output_path_csv, chunk):
             # chunk: the text being analysed at a time by the tool.
             writer.writerow(["constructID", "begin", "end", "chunk"])
 
-        for annotation in data["annotationList"]:
+        for idx, annotation in enumerate(data["annotationList"]):
             construct_id = annotation["constructID"]
             begin = annotation["begin"]
             end = annotation["end"]
-            writer.writerow([construct_id, begin, end, chunk])
+            writer.writerow([construct_id, begin, end, chunk if idx == 0 else None])
 
         print("CSV file updated:", output_path_csv + "\n\n")
 
@@ -212,7 +212,7 @@ def update_nwords_file(chunk):
 
 
 if __name__ == "__main__":
-    url = "http://kibi.group:4000/extractor?text="
+    url = "http://localhost:4000/extractor?text="
     input_dir = "data/input/"
     output_dir = "data/output/"
 
