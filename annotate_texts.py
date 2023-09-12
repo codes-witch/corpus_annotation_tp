@@ -136,12 +136,14 @@ def write_csv_and_txt(data, output_path_text, output_path_csv, chunk, level):
             end = annotation["end"]
             writer.writerow([construct_id, begin, end, chunk if idx == 0 else None])
 
-        print("CSV file updated:", output_path_csv + "\n\n")
+        print("CSV file updated:", output_path_csv + "\n")
 
     with open(output_path_text + ".txt", "a") as textfile:
         textfile.write("\n" + chunk)
 
     update_nwords_file(chunk, level)
+
+    print("\n\n")
 
 
 """
