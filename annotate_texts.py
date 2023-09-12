@@ -106,7 +106,7 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
 
 def write_csv_and_txt(data, output_path_text, output_path_csv, chunk, level):
     """
-    :param data: a JSON ob
+    :param data: a JSON object with the output from POLKE
     :param output_path_text:
     :param output_path_csv:
     :param chunk:
@@ -226,7 +226,8 @@ def update_nwords_file(chunk, level):
 
 if __name__ == "__main__":
     url = "http://localhost:4000/extractor?text="
-    input_dir = "data/input/"
+    input_dir = "data/input/" # Note that we should never run this from data/timeout/ because even those chunks that
+    # time out will be deleted
     output_dir = "data/output/"
 
     for input_path in utils.get_file_paths(input_dir):
