@@ -92,7 +92,7 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
 
 
         except requests.exceptions.RequestException as e:
-            print("\n\nError occurred:\n\n" + e)
+            print("\n\nError occurred:\n\n" + str(e))
 
             os.makedirs(err_level_path, exist_ok=True)
 
@@ -105,6 +105,14 @@ def send_requests(text_chunks, url, output_path_text, output_path_csv):
 
 
 def write_csv_and_txt(data, output_path_text, output_path_csv, chunk, level):
+    """
+    :param data: a JSON ob
+    :param output_path_text:
+    :param output_path_csv:
+    :param chunk:
+    :param level:
+    :return:
+    """
     csv_dir = os.path.dirname(output_path_csv)
     os.makedirs(csv_dir, exist_ok=True)
     txt_dir = os.path.dirname(output_path_text);
@@ -201,6 +209,7 @@ def find_eos_index(word_list):
             break
 
     return eos_idx
+
 
 def update_nwords_file(chunk, level):
     with open("./word_count_" + level + ".txt", "r") as progr_file:
